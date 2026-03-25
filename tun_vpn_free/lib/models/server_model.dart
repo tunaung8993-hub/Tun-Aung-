@@ -5,6 +5,7 @@ class VpnServer {
   final String flag;
   final String protocol;
   final String configLink;
+  final Map<String, dynamic>? configJson; // Added for raw JSON support
   int ping; // ms, -1 = untested, 9999 = unreachable
   bool isFavorite;
 
@@ -15,6 +16,7 @@ class VpnServer {
     required this.flag,
     required this.protocol,
     required this.configLink,
+    this.configJson,
     this.ping = -1,
     this.isFavorite = false,
   });
@@ -27,6 +29,7 @@ class VpnServer {
       flag: json['flag'] ?? '',
       protocol: json['protocol'] ?? '',
       configLink: json['configLink'] ?? '',
+      configJson: json['configJson'],
       ping: json['ping'] ?? -1,
       isFavorite: json['isFavorite'] ?? false,
     );
@@ -56,6 +59,7 @@ class VpnServer {
       flag: flag,
       protocol: protocol,
       configLink: configLink,
+      configJson: configJson,
       ping: ping ?? this.ping,
       isFavorite: isFavorite ?? this.isFavorite,
     );

@@ -1,54 +1,31 @@
 {
-  "version": "1.0",
-  "updated": "2026-03-25",
+  "version": "1.1",
+  "updated": "2026-03-26",
   "servers": [
     {
       "id": "sg-01",
       "country": "Singapore",
-      "city": "Singapore",
+      "city": "Singapore-CF",
       "flag": "🇸🇬",
       "protocol": "VLESS",
-      "configLink": "vless://468bc517-d39f-4425-a895-10d73e4c3467@104.20.6.245:443?encryption=none&security=tls&sni=My-pROxY.TuntUnAuNgMDW.wORkERs.DEV&fp=chrome&alpn=http%2F1.1&type=ws&host=my-proxy.tuntunaungmdw.workers.dev&path=%2FeyJqdW5rIjoiaGFwaDV3REMiLCJwcm90b2NvbCI6InZsIiwibW9kZSI6InByb3h5aXAiLCJwYW5lbElQcyI6W119%3Fed%3D2560#SG-Cloudflare"
-    },
-    {
-      "id": "th-01",
-      "country": "Thailand",
-      "city": "Bangkok",
-      "flag": "🇹🇭",
-      "protocol": "VMess",
-      "configLink": "REPLACE_WITH_REAL_VMESS_LINK"
-    },
-    {
-      "id": "hk-01",
-      "country": "Hong Kong",
-      "city": "Hong Kong",
-      "flag": "🇭🇰",
-      "protocol": "VLESS",
-      "configLink": "REPLACE_WITH_REAL_VLESS_LINK"
-    },
-    {
-      "id": "jp-01",
-      "country": "Japan",
-      "city": "Tokyo",
-      "flag": "🇯🇵",
-      "protocol": "VMess",
-      "configLink": "REPLACE_WITH_REAL_VMESS_LINK"
-    },
-    {
-      "id": "us-01",
-      "country": "United States",
-      "city": "Los Angeles",
-      "flag": "🇺🇸",
-      "protocol": "VMess",
-      "configLink": "REPLACE_WITH_REAL_VMESS_LINK"
-    },
-    {
-      "id": "de-01",
-      "country": "Germany",
-      "city": "Frankfurt",
-      "flag": "🇩🇪",
-      "protocol": "VMess",
-      "configLink": "REPLACE_WITH_REAL_VMESS_LINK"
+      "configLink": "",
+      "configJson": {
+        "v": "2",
+        "ps": "Singapore-Cloudflare",
+        "add": "104.20.6.245",
+        "port": "443",
+        "id": "468bc517-d39f-4425-a895-10d73e4c3467",
+        "aid": "0",
+        "scy": "auto",
+        "net": "ws",
+        "type": "none",
+        "host": "my-proxy.tuntunaungmdw.workers.dev",
+        "path": "/eyJqdW5rIjoiaGFwaDV3REMiLCJwcm90b2NvbCI6InZsIiwibW9kZSI6InByb3h5aXAiLCJwYW5lbElQcyI6W119?ed=2560",
+        "tls": "tls",
+        "sni": "my-proxy.tuntunaungmdw.workers.dev",
+        "alpn": "http/1.1",
+        "fp": "chrome"
+      }
     }
   ]
 }

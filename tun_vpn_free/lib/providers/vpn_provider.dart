@@ -181,11 +181,23 @@ class VpnProvider extends ChangeNotifier {
         return;
       }
 
-      final parser = FlutterV2ray.parseFromURL(_selectedServer!.configLink);
+      String? config;
+      if (_selectedServer!.configJson != null) {
+        // If raw JSON is provided, convert it to V2Ray configuration
+        config = _generateConfigFromJson(_selectedServer!.configJson!);
+      } else {
+        // Otherwise use the standard URL parser
+        final parser = FlutterV2ray.parseFromURL(_selectedServer!.configLink);
+        config = parser.getFullConfiguration();
+      }
+
+      if (config == null) {
+        throw Exception('Invalid configuration');
+      }
 
       await _flutterV2ray.startV2Ray(
         remark: _selectedServer!.displayName,
-        config: parser.getFullConfiguration(),
+        config: config,
         blockedApps: null,
         bypassSubnets: null,
         proxyOnly: false,
@@ -195,6 +207,64 @@ class VpnProvider extends ChangeNotifier {
       _errorMessage = 'Connection failed: ${e.toString()}';
       debugPrint('Connect error: $e');
       notifyListeners();
+    }
+  }
+
+  String? _generateConfigFromJson(Map<String, dynamic> json) {
+    try {
+      // Create a basic V2Ray JSON configuration from the provided object
+      // This is a simplified version, ideally we'd want to handle all fields
+      final String address = json['add'] ?? '';
+      final int port = int.tryParse(json['port']?.toString() ?? '443') ?? 443;
+      final String id = json['id'] ?? '';
+      final String host = json['host'] ?? '';
+      final String path = json['path'] ?? '';
+      final String sni = json['sni'] ?? host;
+      final String tls = json['tls'] ?? '';
+
+      // V2Ray configuration template
+      final config = {
+        "outbounds": [
+          {
+            "protocol": "vless",
+            "settings": {
+              "vnext": [
+                {
+                  "address": address,
+                  "port": port,
+                  "users": [
+                    {
+                      "id": id,
+                      "encryption": "none",
+                      "level": 0
+                    }
+                  ]
+                }
+              ]
+            },
+            "streamSettings": {
+              "network": json['net'] ?? "ws",
+              "security": tls == "tls" ? "tls" : "none",
+              "tlsSettings": {
+                "serverName": sni,
+                "allowInsecure": false,
+                "fingerprint": json['fp'] ?? "chrome"
+              },
+              "wsSettings": {
+                "path": path,
+                "headers": {
+                  "Host": host
+                }
+              }
+            }
+          }
+        ]
+      };
+      
+      return jsonEncode(config);
+    } catch (e) {
+      debugPrint('Config generation error: $e');
+      return null;
     }
   }
 
@@ -238,13 +308,21 @@ class VpnProvider extends ChangeNotifier {
     for (int i = 0; i < _servers.length; i++) {
       try {
         if (_v2rayInitialized) {
-          final parser = FlutterV2ray.parseFromURL(_servers[i].configLink);
-          final delay = await _flutterV2ray.getServerDelay(
-            config: parser.getFullConfiguration(),
-          );
-          _servers[i] = _servers[i].copyWith(ping: delay);
+          String? config;
+          if (_servers[i].configJson != null) {
+            config = _generateConfigFromJson(_servers[i].configJson!);
+          } else {
+            final parser = FlutterV2ray.parseFromURL(_servers[i].configLink);
+            config = parser.getFullConfiguration();
+          }
+
+          if (config != null) {
+            final delay = await _flutterV2ray.getServerDelay(
+              config: config,
+            );
+            _servers[i] = _servers[i].copyWith(ping: delay);
+          }
         } else {
-          // Fallback: simulate ping
           _servers[i] = _servers[i].copyWith(ping: 50 + (i * 30));
         }
       } catch (e) {
@@ -253,7 +331,6 @@ class VpnProvider extends ChangeNotifier {
       notifyListeners();
     }
 
-    // Sort by ping
     _servers.sort((a, b) {
       if (a.ping == 9999) return 1;
       if (b.ping == 9999) return -1;
@@ -318,8 +395,6 @@ class VpnProvider extends ChangeNotifier {
   void _startStatsTimer() {
     _statsTimer?.cancel();
     _statsTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      // In a real app, get stats from V2Ray status
-      // For now we simulate traffic stats
       notifyListeners();
     });
   }
