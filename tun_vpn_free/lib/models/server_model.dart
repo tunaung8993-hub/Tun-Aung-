@@ -19,6 +19,19 @@ class VpnServer {
     this.isFavorite = false,
   });
 
+  factory VpnServer.fromJson(Map<String, dynamic> json) {
+    return VpnServer(
+      id: json['id'] ?? '',
+      country: json['country'] ?? '',
+      city: json['city'] ?? '',
+      flag: json['flag'] ?? '',
+      protocol: json['protocol'] ?? '',
+      configLink: json['configLink'] ?? '',
+      ping: json['ping'] ?? -1,
+      isFavorite: json['isFavorite'] ?? false,
+    );
+  }
+
   String get displayName => '$flag $city, $country';
 
   String get pingLabel {
