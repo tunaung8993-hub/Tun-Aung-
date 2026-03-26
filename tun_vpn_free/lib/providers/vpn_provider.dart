@@ -11,7 +11,7 @@ enum VpnStatus { disconnected, connecting, connected, disconnecting, error }
 class VpnProvider extends ChangeNotifier {
   static const String remoteServerUrl =
       'https://raw.githubusercontent.com/tunaung8993-hub/Tun-Aung-/main/tun_vpn_free/assets/servers/servers.json';
-  static const String subscriptionUrl =
+  String _currentSubscriptionUrl =
       'https://my-proxy.tuntunaungmdw.workers.dev/sub/normal/WrOePpVG?app=xray';
   VpnStatus _status = VpnStatus.disconnected;
   VpnServer? _selectedServer;
@@ -105,10 +105,28 @@ class VpnProvider extends ChangeNotifier {
   }
 
   Future<void> refreshServers() async {
-    // 1. Try to fetch from Subscription Link first (Most up-to-date)
+    // 1. First, fetch Remote JSON to see if there's a new Subscription URL
+    try {
+      final jsonResponse = await http
+          .get(Uri.parse(remoteServerUrl))
+          .timeout(const Duration(seconds: 10));
+      if (jsonResponse.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(jsonResponse.body);
+        if (data.containsKey('subscription_url') && data['subscription_url'].toString().isNotEmpty) {
+          _currentSubscriptionUrl = data['subscription_url'];
+          debugPrint('Updated subscription URL from remote: $_currentSubscriptionUrl');
+        }
+        
+        // If the JSON also contains direct servers, we'll use them as fallback later
+      }
+    } catch (e) {
+      debugPrint('Failed to fetch remote JSON for subscription update: $e');
+    }
+
+    // 2. Try to fetch from the (potentially updated) Subscription Link
     try {
       final response = await http
-          .get(Uri.parse(subscriptionUrl))
+          .get(Uri.parse(_currentSubscriptionUrl))
           .timeout(const Duration(seconds: 15));
       
       if (response.statusCode == 200) {
