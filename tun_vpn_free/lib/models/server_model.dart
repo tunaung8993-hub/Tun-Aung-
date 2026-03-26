@@ -5,7 +5,7 @@ class VpnServer {
   final String flag;
   final String protocol;
   final String configLink;
-  final String? configJson;
+  final dynamic configJson;
   int ping;
   bool isFavorite;
 

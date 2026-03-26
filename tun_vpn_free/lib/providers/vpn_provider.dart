@@ -185,10 +185,16 @@ class VpnProvider extends ChangeNotifier {
       }
 
       String? config;
-      if (_selectedServer!.configJson != null &&
-          _selectedServer!.configJson!.isNotEmpty) {
-        config = _selectedServer!.configJson;
-      } else {
+      if (_selectedServer!.configJson != null) {
+        // If configJson is a Map, convert it to JSON string
+        if (_selectedServer!.configJson is Map) {
+          config = json.encode(_selectedServer!.configJson);
+        } else if (_selectedServer!.configJson is String && (_selectedServer!.configJson as String).isNotEmpty) {
+          config = _selectedServer!.configJson;
+        }
+      }
+      
+      if (config == null && _selectedServer!.configLink.isNotEmpty) {
         final parser = FlutterV2ray.parseFromURL(_selectedServer!.configLink);
         config = parser.getFullConfiguration();
       }

@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "1.0.1",
   "updated": "2026-03-26",
   "servers": [
     {
@@ -8,56 +8,15 @@
       "city": "Singapore",
       "flag": "🇸🇬",
       "protocol": "VLESS",
-      "configLink": "vless://468bc517-d39f-4425-a895-10d73e4c3467@104.20.6.245:443?encryption=none&security=tls&sni=My-pROxY.TuntUnAuNgMDW.wORkERs.DEV&fp=chrome&alpn=http%2F1.1&type=ws&host=my-proxy.tuntunaungmdw.workers.dev&path=%2FeyJqdW5rIjoiaGFwaDV3REMiLCJwcm90b2NvbCI6InZsIiwibW9kZSI6InByb3h5aXAiLCJwYW5lbElQcyI6W119%3Fed%3D2560#SG-Cloudflare"
+      "configLink": "vless://468bc517-d39f-4425-a895-10d73e4c3467@104.20.6.245:443?encryption=none&security=tls&sni=my-proxy.tuntunaungmdw.workers.dev&type=ws&host=my-proxy.tuntunaungmdw.workers.dev&path=%2FeyJqdW5rIjoiaGFwaDV3REMiLCJwcm90b2NvbCI6InZsIiwibW9kZSI6InByb3h5aXAiLCJwYW5lbElQcyI6W119%3Fed%3D2560#Singapore-Cloudflare"
     },
     {
       "id": "sg-02",
       "country": "Singapore",
-      "city": "Singapore (Clean IP)",
+      "city": "Singapore Premium",
       "flag": "🇸🇬",
       "protocol": "VLESS",
-      "configLink": "",
-      "configJson": "{\"remarks\":\"💦 26 - VLESS - Clean IP : 443\",\"version\":{\"min\":\"25.10.15\"},\"log\":{\"loglevel\":\"warning\"},\"dns\":{\"servers\":[{\"address\":\"https://8.8.8.8/dns-query\",\"tag\":\"remote-dns\"}],\"queryStrategy\":\"UseIP\",\"tag\":\"dns\"},\"inbounds\":[{\"listen\":\"127.0.0.1\",\"port\":10808,\"protocol\":\"socks\",\"settings\":{\"auth\":\"noauth\",\"udp\":true},\"sniffing\":{\"destOverride\":[\"http\",\"tls\"],\"enabled\":true,\"routeOnly\":true},\"tag\":\"mixed-in\"},{\"listen\":\"127.0.0.1\",\"port\":10853,\"protocol\":\"dokodemo-door\",\"settings\":{\"address\":\"1.1.1.1\",\"network\":\"tcp,udp\",\"port\":53},\"tag\":\"dns-in\"}],\"outbounds\":[{\"protocol\":\"vless\",\"settings\":{\"vnext\":[{\"address\":\"104.21.71.90\",\"port\":443,\"users\":[{\"id\":\"468bc517-d39f-4425-a895-10d73e4c3467\",\"encryption\":\"none\"}]}]},\"streamSettings\":{\"network\":\"ws\",\"wsSettings\":{\"host\":\"my-proxy.tuntunaungmdw.workers.dev\",\"path\":\"/eyJqdW5rIjoiSnhqekNheEFxIiwicHJvdG9jb2wiOiJ2bCIsIm1vZGUiOiJwcm94eWlwIiwicGFuZWxJUHMiOltdfQ==?ed=2560\"},\"security\":\"tls\",\"tlsSettings\":{\"serverName\":\"mY-prOxY.TUntunAuNGmDw.wOrkErs.deV\",\"fingerprint\":\"chrome\",\"alpn\":[\"http/1.1\"],\"allowInsecure\":false,\"echConfigList\":\"udp://8.8.8.8\"},\"sockopt\":{\"domainStrategy\":\"UseIP\",\"happyEyeballs\":{\"tryDelayMs\":250,\"prioritizeIPv6\":false,\"interleave\":2,\"maxConcurrentTry\":4}}},\"tag\":\"proxy\"},{\"protocol\":\"dns\",\"settings\":{\"nonIPQuery\":\"reject\"},\"tag\":\"dns-out\"},{\"protocol\":\"freedom\",\"settings\":{\"domainStrategy\":\"UseIP\"},\"tag\":\"direct\"},{\"protocol\":\"blackhole\",\"settings\":{\"response\":{\"type\":\"http\"}},\"tag\":\"block\"}],\"routing\":{\"domainStrategy\":\"IPIfNonMatch\",\"rules\":[{\"inboundTag\":[\"mixed-in\"],\"port\":53,\"outboundTag\":\"dns-out\",\"type\":\"field\"},{\"inboundTag\":[\"dns-in\"],\"outboundTag\":\"dns-out\",\"type\":\"field\"},{\"inboundTag\":[\"remote-dns\"],\"outboundTag\":\"proxy\",\"type\":\"field\"},{\"inboundTag\":[\"dns\"],\"outboundTag\":\"direct\",\"type\":\"field\"},{\"domain\":[\"geosite:private\"],\"outboundTag\":\"direct\",\"type\":\"field\"},{\"ip\":[\"geoip:private\"],\"outboundTag\":\"direct\",\"type\":\"field\"},{\"network\":\"udp\",\"outboundTag\":\"block\",\"type\":\"field\"},{\"network\":\"tcp\",\"outboundTag\":\"proxy\",\"type\":\"field\"}]},\"policy\":{\"levels\":{\"0\":{\"connIdle\":300,\"handshake\":4,\"uplinkOnly\":1,\"downlinkOnly\":1}},\"system\":{\"statsOutboundUplink\":true,\"statsOutboundDownlink\":true}},\"stats\":{}}"
-    },
-    {
-      "id": "th-01",
-      "country": "Thailand",
-      "city": "Bangkok",
-      "flag": "🇹🇭",
-      "protocol": "VMess",
-      "configLink": "REPLACE_WITH_REAL_VMESS_LINK"
-    },
-    {
-      "id": "hk-01",
-      "country": "Hong Kong",
-      "city": "Hong Kong",
-      "flag": "🇭🇰",
-      "protocol": "VLESS",
-      "configLink": "REPLACE_WITH_REAL_VLESS_LINK"
-    },
-    {
-      "id": "jp-01",
-      "country": "Japan",
-      "city": "Tokyo",
-      "flag": "🇯🇵",
-      "protocol": "VMess",
-      "configLink": "REPLACE_WITH_REAL_VMESS_LINK"
-    },
-    {
-      "id": "us-01",
-      "country": "United States",
-      "city": "Los Angeles",
-      "flag": "🇺🇸",
-      "protocol": "VMess",
-      "configLink": "REPLACE_WITH_REAL_VMESS_LINK"
-    },
-    {
-      "id": "de-01",
-      "country": "Germany",
-      "city": "Frankfurt",
-      "flag": "🇩🇪",
-      "protocol": "VMess",
-      "configLink": "REPLACE_WITH_REAL_VMESS_LINK"
+      "configLink": "vless://468bc517-d39f-4425-a895-10d73e4c3467@104.21.71.90:443?encryption=none&security=tls&sni=my-proxy.tuntunaungmdw.workers.dev&type=ws&host=my-proxy.tuntunaungmdw.workers.dev&path=%2FeyJqdW5rIjoiSnhqekNheEFxIiwicHJvdG9jb2wiOiJ2bCIsIm1vZGUiOiJwcm94eWlwIiwicGFuZWxJUHMiOltdfQ==?ed=2560#Singapore-Premium"
     }
   ]
 }
