@@ -96,7 +96,7 @@ class VpnProvider extends ChangeNotifier {
     _selectedServer = _servers.first;
     _initV2Ray();
     _fetchRealIp();
-    refreshServers(); // Fetch latest servers from GitHub
+    refreshServers();
   }
 
   Future<void> refreshServers() async {
@@ -180,15 +180,16 @@ class VpnProvider extends ChangeNotifier {
         notifyListeners();
         return;
       }
-String? config;
-if (_selectedServer!.configJson != null &&
-    _selectedServer!.configJson!.isNotEmpty) {
-  config = _selectedServer!.configJson;
-} else {
-  final parser = FlutterV2ray.parseFromURL(_selectedServer!.configLink);
-  config = parser.getFullConfiguration();
-}
-      
+
+      String? config;
+      if (_selectedServer!.configJson != null &&
+          _selectedServer!.configJson!.isNotEmpty) {
+        config = _selectedServer!.configJson;
+      } else {
+        final parser = FlutterV2ray.parseFromURL(_selectedServer!.configLink);
+        config = parser.getFullConfiguration();
+      }
+
       if (config == null) {
         throw Exception('Invalid configuration');
       }
@@ -205,64 +206,6 @@ if (_selectedServer!.configJson != null &&
       _errorMessage = 'Connection failed: ${e.toString()}';
       debugPrint('Connect error: $e');
       notifyListeners();
-    }
-  }
-
-  String? _generateConfigFromJson(Map<String, dynamic> json) {
-    try {
-      // Create a basic V2Ray JSON configuration from the provided object
-      // This is a simplified version, ideally we'd want to handle all fields
-      final String address = json['add'] ?? '';
-      final int port = int.tryParse(json['port']?.toString() ?? '443') ?? 443;
-      final String id = json['id'] ?? '';
-      final String host = json['host'] ?? '';
-      final String path = json['path'] ?? '';
-      final String sni = json['sni'] ?? host;
-      final String tls = json['tls'] ?? '';
-
-      // V2Ray configuration template
-      final config = {
-        "outbounds": [
-          {
-            "protocol": "vless",
-            "settings": {
-              "vnext": [
-                {
-                  "address": address,
-                  "port": port,
-                  "users": [
-                    {
-                      "id": id,
-                      "encryption": "none",
-                      "level": 0
-                    }
-                  ]
-                }
-              ]
-            },
-            "streamSettings": {
-              "network": json['net'] ?? "ws",
-              "security": tls == "tls" ? "tls" : "none",
-              "tlsSettings": {
-                "serverName": sni,
-                "allowInsecure": false,
-                "fingerprint": json['fp'] ?? "chrome"
-              },
-              "wsSettings": {
-                "path": path,
-                "headers": {
-                  "Host": host
-                }
-              }
-            }
-          }
-        ]
-      };
-      
-      return jsonEncode(config);
-    } catch (e) {
-      debugPrint('Config generation error: $e');
-      return null;
     }
   }
 
@@ -307,10 +250,12 @@ if (_selectedServer!.configJson != null &&
       try {
         if (_v2rayInitialized) {
           String? config;
-          if (_servers[i].configJson != null) {
-            config = _generateConfigFromJson(_servers[i].configJson!);
+          if (_servers[i].configJson != null &&
+              _servers[i].configJson!.isNotEmpty) {
+            config = _servers[i].configJson;
           } else {
-            final parser = FlutterV2ray.parseFromURL(_servers[i].configLink);
+            final parser =
+                FlutterV2ray.parseFromURL(_servers[i].configLink);
             config = parser.getFullConfiguration();
           }
 
@@ -342,7 +287,8 @@ if (_selectedServer!.configJson != null &&
   }
 
   void autoSelectBestServer() {
-    final available = _servers.where((s) => s.ping > 0 && s.ping < 9999).toList();
+    final available =
+        _servers.where((s) => s.ping > 0 && s.ping < 9999).toList();
     if (available.isNotEmpty) {
       available.sort((a, b) => a.ping.compareTo(b.ping));
       _selectedServer = available.first;
