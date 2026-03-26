@@ -180,17 +180,15 @@ class VpnProvider extends ChangeNotifier {
         notifyListeners();
         return;
       }
-
-      String? config;
-      if (_selectedServer!.configJson != null) {
-        // If raw JSON is provided, convert it to V2Ray configuration
-        config = _generateConfigFromJson(_selectedServer!.configJson!);
-      } else {
-        // Otherwise use the standard URL parser
-        final parser = FlutterV2ray.parseFromURL(_selectedServer!.configLink);
-        config = parser.getFullConfiguration();
-      }
-
+String? config;
+if (_selectedServer!.configJson != null &&
+    _selectedServer!.configJson!.isNotEmpty) {
+  config = _selectedServer!.configJson;
+} else {
+  final parser = FlutterV2ray.parseFromURL(_selectedServer!.configLink);
+  config = parser.getFullConfiguration();
+}
+      
       if (config == null) {
         throw Exception('Invalid configuration');
       }
