@@ -46,7 +46,7 @@ class _ShieldPainter extends CustomPainter {
 
     // Outer glow
     final glowPaint = Paint()
-      ..color = color.withValues(alpha: 0.15)
+      ..color = color.withOpacity(0.15)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
     canvas.drawPath(shieldPath, glowPaint);
 
@@ -55,8 +55,8 @@ class _ShieldPainter extends CustomPainter {
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        color.withValues(alpha: 0.9),
-        color.withValues(alpha: 0.6),
+        color.withOpacity(0.9),
+        color.withOpacity(0.6),
         const Color(0xFF004D20),
       ],
     );
@@ -91,7 +91,7 @@ class _ShieldPainter extends CustomPainter {
     innerPath.close();
 
     final innerPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
+      ..color = Colors.white.withOpacity(0.08)
       ..style = PaintingStyle.fill;
     canvas.drawPath(innerPath, innerPaint);
 
