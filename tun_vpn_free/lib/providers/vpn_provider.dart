@@ -357,3 +357,4 @@ class VpnProvider extends ChangeNotifier {
     super.dispose();
   }
 }
+
