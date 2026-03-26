@@ -11,6 +11,8 @@ enum VpnStatus { disconnected, connecting, connected, disconnecting, error }
 class VpnProvider extends ChangeNotifier {
   static const String remoteServerUrl =
       'https://raw.githubusercontent.com/tunaung8993-hub/Tun-Aung-/main/tun_vpn_free/assets/servers/servers.json';
+  static const String subscriptionUrl =
+      'https://my-proxy.tuntunaungmdw.workers.dev/sub/normal/WrOePpVG?app=xray';
   VpnStatus _status = VpnStatus.disconnected;
   VpnServer? _selectedServer;
   List<VpnServer> _servers = [];
@@ -103,6 +105,61 @@ class VpnProvider extends ChangeNotifier {
   }
 
   Future<void> refreshServers() async {
+    // 1. Try to fetch from Subscription Link first (Most up-to-date)
+    try {
+      final response = await http
+          .get(Uri.parse(subscriptionUrl))
+          .timeout(const Duration(seconds: 15));
+      
+      if (response.statusCode == 200) {
+        final String content = response.body;
+        // Subscription links are usually Base64 encoded lists of vmess/vless links
+        try {
+          String decoded = utf8.decode(base64.decode(content.trim()));
+          List<String> links = decoded.split('\n').where((l) => l.trim().isNotEmpty).toList();
+          
+          if (links.isNotEmpty) {
+            List<VpnServer> newServers = [];
+            for (int i = 0; i < links.length; i++) {
+              String link = links[i].trim();
+              String name = 'Server ${i + 1}';
+              
+              // Try to extract name from remark (#Name)
+              if (link.contains('#')) {
+                name = Uri.decodeComponent(link.split('#').last);
+              }
+              
+              newServers.add(VpnServer(
+                id: 'sub-$i',
+                country: 'Auto',
+                city: name,
+                flag: '🌐',
+                protocol: link.startsWith('vmess') ? 'VMess' : 'VLESS',
+                configLink: link,
+              ));
+            }
+            
+            if (newServers.isNotEmpty) {
+              _servers = newServers;
+              _selectedServer = _servers.first;
+              notifyListeners();
+              return; // Success, no need to fetch from JSON
+            }
+          }
+        } catch (e) {
+          debugPrint('Failed to decode subscription: $e');
+          // If not base64, maybe it's plain text links
+          List<String> links = content.split('\n').where((l) => l.trim().isNotEmpty).toList();
+          if (links.any((l) => l.startsWith('vmess') || l.startsWith('vless'))) {
+             // Handle plain text links similarly...
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Subscription fetch error: $e');
+    }
+
+    // 2. Fallback to Remote JSON if subscription fails
     try {
       final response = await http
           .get(Uri.parse(remoteServerUrl))
