@@ -5,8 +5,8 @@ class VpnServer {
   final String flag;
   final String protocol;
   final String configLink;
-  final Map<String, dynamic>? configJson; // Added for raw JSON support
-  int ping; // ms, -1 = untested, 9999 = unreachable
+  final String? configJson;
+  int ping;
   bool isFavorite;
 
   VpnServer({
@@ -30,8 +30,6 @@ class VpnServer {
       protocol: json['protocol'] ?? '',
       configLink: json['configLink'] ?? '',
       configJson: json['configJson'],
-      ping: json['ping'] ?? -1,
-      isFavorite: json['isFavorite'] ?? false,
     );
   }
 
