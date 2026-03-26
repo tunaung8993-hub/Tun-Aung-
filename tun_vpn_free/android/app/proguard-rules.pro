@@ -1,0 +1,2 @@
+-keep class io.flutter.plugins.flutter_v2ray.** { *; }
+-keep class com.v2ray.core.** { *; }
