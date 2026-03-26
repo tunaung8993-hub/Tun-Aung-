@@ -1,10 +1,14 @@
-name: Build Flutter APK
+name: Build Tun VPN APK
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   build:
+    name: Build Android APK
     runs-on: ubuntu-latest
 
     defaults:
@@ -19,27 +23,28 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '17'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.27.4'
           channel: 'stable'
-
-      - name: Disable Jetifier
-        run: |
-          echo "android.enableJetifier=false" >> android/gradle.properties
 
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Build APK
+      - name: Build APK (Split per ABI)
         run: flutter build apk --release --split-per-abi
 
-      - name: Upload APK
+      - name: Build Universal APK
+        run: flutter build apk --release
+
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: TunVPN-APK
-          path: tun_vpn_free/build/app/outputs/flutter-apk/*.apk
+          name: TunVPN-Release-APKs
+          path: |
+            tun_vpn_free/build/app/outputs/flutter-apk/*.apk
+            tun_vpn_free/build/app/outputs/apk/release/*.apk
           retention-days: 30
