@@ -129,7 +129,7 @@ class _ConnectButtonState extends State<ConnectButton>
                     height: 180,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: color.withValues(alpha: 0.06),
+                      color: color.withOpacity(0.06),
                     ),
                   ),
                 ),
@@ -142,7 +142,7 @@ class _ConnectButtonState extends State<ConnectButton>
                     height: 155,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: color.withValues(alpha: 0.1),
+                      color: color.withOpacity(0.1),
                     ),
                   ),
                 ),
@@ -156,7 +156,7 @@ class _ConnectButtonState extends State<ConnectButton>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: color.withValues(alpha: 0.4),
+                        color: color.withOpacity(0.4),
                         width: 2,
                       ),
                     ),
@@ -174,15 +174,15 @@ class _ConnectButtonState extends State<ConnectButton>
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      color.withValues(alpha: 0.9),
-                      color.withValues(alpha: 0.7),
-                      color.withValues(alpha: 0.5),
+                      color.withOpacity(0.9),
+                      color.withOpacity(0.7),
+                      color.withOpacity(0.5),
                     ],
                     stops: const [0.0, 0.6, 1.0],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: color.withValues(alpha: 0.4),
+                      color: color.withOpacity(0.4),
                       blurRadius: 24,
                       spreadRadius: 4,
                     ),

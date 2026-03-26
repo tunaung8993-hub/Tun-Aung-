@@ -26,8 +26,8 @@ void main() async {
     ),
   );
 
-  // Initialize ads
-  await AdsService.instance.initialize();
+  // Initialize ads (don't await to prevent white screen if ads fail)
+  AdsService.instance.initialize().catchError((e) => debugPrint('Ads init error: $e'));
 
   runApp(
     MultiProvider(

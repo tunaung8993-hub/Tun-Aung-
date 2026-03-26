@@ -62,10 +62,16 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _navigate() {
     if (!mounted) return;
-    final settings = context.read<SettingsProvider>();
-    if (settings.firstLaunch || !settings.privacyAccepted) {
-      Navigator.of(context).pushReplacementNamed('/privacy');
-    } else {
+    try {
+      final settings = context.read<SettingsProvider>();
+      if (settings.firstLaunch || !settings.privacyAccepted) {
+        Navigator.of(context).pushReplacementNamed('/privacy');
+      } else {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
+    } catch (e) {
+      debugPrint('Navigation error: $e');
+      // Fallback to home if something goes wrong
       Navigator.of(context).pushReplacementNamed('/home');
     }
   }

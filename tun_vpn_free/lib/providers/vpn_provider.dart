@@ -93,10 +93,13 @@ class VpnProvider extends ChangeNotifier {
 
   VpnProvider() {
     _servers = getDefaultServers();
-    _selectedServer = _servers.first;
-    _initV2Ray();
-    _fetchRealIp();
-    refreshServers();
+    if (_servers.isNotEmpty) {
+      _selectedServer = _servers.first;
+    }
+    // Initialize V2Ray without blocking the constructor
+    _initV2Ray().catchError((e) => debugPrint('V2Ray init error: $e'));
+    _fetchRealIp().catchError((e) => debugPrint('IP fetch error: $e'));
+    refreshServers().catchError((e) => debugPrint('Server refresh error: $e'));
   }
 
   Future<void> refreshServers() async {

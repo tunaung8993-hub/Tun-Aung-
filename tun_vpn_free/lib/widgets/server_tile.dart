@@ -34,12 +34,12 @@ class ServerTile extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.12)
+              ? AppColors.primary.withOpacity(0.12)
               : (isDark ? AppColors.darkCard : Colors.white),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
-                ? AppColors.primary.withValues(alpha: 0.5)
+                ? AppColors.primary.withOpacity(0.5)
                 : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
             width: isSelected ? 1.5 : 1,
           ),
@@ -79,7 +79,7 @@ class ServerTile extends StatelessWidget {
                           vertical: 1,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.15),
+                          color: AppColors.primary.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
