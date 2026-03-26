@@ -130,25 +130,39 @@ class VpnProvider extends ChangeNotifier {
           .timeout(const Duration(seconds: 15));
       
       if (response.statusCode == 200) {
-        final String content = response.body;
-        // Subscription links are usually Base64 encoded lists of vmess/vless links
-        try {
-          String decoded = utf8.decode(base64.decode(content.trim()));
-          List<String> links = decoded.split('\n').where((l) => l.trim().isNotEmpty).toList();
-          
-          if (links.isNotEmpty) {
-            List<VpnServer> newServers = [];
+        final String content = response.body.trim();
+        List<VpnServer> newServers = [];
+
+        // 1. Check if it's a JSON List (Xray/V2Ray JSON config list)
+        if (content.startsWith('[') && content.endsWith(']')) {
+          try {
+            final List<dynamic> jsonList = json.decode(content);
+            for (int i = 0; i < jsonList.length; i++) {
+              final config = jsonList[i];
+              String name = config['remarks'] ?? 'Server ${i + 1}';
+              newServers.add(VpnServer(
+                id: 'sub-json-$i',
+                country: 'Auto',
+                city: name,
+                flag: '🌐',
+                protocol: 'V2Ray JSON',
+                configJson: config, // Store the full JSON config
+              ));
+            }
+          } catch (e) {
+            debugPrint('Failed to parse JSON subscription: $e');
+          }
+        } 
+        // 2. Check if it's Base64 encoded links
+        else {
+          try {
+            String decoded = utf8.decode(base64.decode(content));
+            List<String> links = decoded.split('\n').where((l) => l.trim().isNotEmpty).toList();
             for (int i = 0; i < links.length; i++) {
               String link = links[i].trim();
-              String name = 'Server ${i + 1}';
-              
-              // Try to extract name from remark (#Name)
-              if (link.contains('#')) {
-                name = Uri.decodeComponent(link.split('#').last);
-              }
-              
+              String name = link.contains('#') ? Uri.decodeComponent(link.split('#').last) : 'Server ${i + 1}';
               newServers.add(VpnServer(
-                id: 'sub-$i',
+                id: 'sub-link-$i',
                 country: 'Auto',
                 city: name,
                 flag: '🌐',
@@ -156,21 +170,34 @@ class VpnProvider extends ChangeNotifier {
                 configLink: link,
               ));
             }
-            
-            if (newServers.isNotEmpty) {
-              _servers = newServers;
-              _selectedServer = _servers.first;
-              notifyListeners();
-              return; // Success, no need to fetch from JSON
+          } catch (e) {
+            debugPrint('Failed to decode Base64 subscription: $e');
+            // 3. Try as plain text links
+            List<String> links = content.split('\n').where((l) => l.trim().isNotEmpty).toList();
+            if (links.any((l) => l.startsWith('vmess') || l.startsWith('vless'))) {
+              for (int i = 0; i < links.length; i++) {
+                String link = links[i].trim();
+                if (link.startsWith('vmess') || link.startsWith('vless')) {
+                  String name = link.contains('#') ? Uri.decodeComponent(link.split('#').last) : 'Server ${i + 1}';
+                  newServers.add(VpnServer(
+                    id: 'sub-plain-$i',
+                    country: 'Auto',
+                    city: name,
+                    flag: '🌐',
+                    protocol: link.startsWith('vmess') ? 'VMess' : 'VLESS',
+                    configLink: link,
+                  ));
+                }
+              }
             }
           }
-        } catch (e) {
-          debugPrint('Failed to decode subscription: $e');
-          // If not base64, maybe it's plain text links
-          List<String> links = content.split('\n').where((l) => l.trim().isNotEmpty).toList();
-          if (links.any((l) => l.startsWith('vmess') || l.startsWith('vless'))) {
-             // Handle plain text links similarly...
-          }
+        }
+
+        if (newServers.isNotEmpty) {
+          _servers = newServers;
+          _selectedServer = _servers.first;
+          notifyListeners();
+          return;
         }
       }
     } catch (e) {
@@ -270,8 +297,15 @@ class VpnProvider extends ChangeNotifier {
       }
       
       if (config == null && _selectedServer!.configLink.isNotEmpty) {
-        final parser = FlutterV2ray.parseFromURL(_selectedServer!.configLink);
-        config = parser.getFullConfiguration();
+        try {
+          // Use the built-in parser for vmess/vless links
+          config = await _flutterV2ray.parseV2rayLink(_selectedServer!.configLink);
+        } catch (e) {
+          debugPrint('Link parsing error: $e');
+          // Fallback to manual parsing if needed
+          final parser = FlutterV2ray.parseFromURL(_selectedServer!.configLink);
+          config = parser.getFullConfiguration();
+        }
       }
 
       if (config == null) {
