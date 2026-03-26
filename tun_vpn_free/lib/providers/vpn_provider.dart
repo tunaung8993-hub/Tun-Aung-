@@ -10,7 +10,7 @@ enum VpnStatus { disconnected, connecting, connected, disconnecting, error }
 
 class VpnProvider extends ChangeNotifier {
   static const String remoteServerUrl =
-      'https://raw.githubusercontent.com/tunaung8993-hub/Tun-Aung/main/assets/servers/servers.json';
+      'https://raw.githubusercontent.com/tunaung8993-hub/Tun-Aung-/main/tun_vpn_free/assets/servers/servers.json';
   VpnStatus _status = VpnStatus.disconnected;
   VpnServer? _selectedServer;
   List<VpnServer> _servers = [];
