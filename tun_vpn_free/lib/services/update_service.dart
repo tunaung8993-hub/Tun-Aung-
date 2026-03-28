@@ -5,7 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 class UpdateService {
   static const String _githubUser = 'tunaung8993-hub';
-  static const String _githubRepo = 'Tun-Aung';
+  static const String _githubRepo = 'Tun-Aung-';
 
   static const String _apiUrl =
       'https://api.github.com/repos/$_githubUser/$_githubRepo/releases/latest';

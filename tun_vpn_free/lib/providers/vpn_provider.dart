@@ -116,8 +116,6 @@ class VpnProvider extends ChangeNotifier {
           _currentSubscriptionUrl = data['subscription_url'];
           debugPrint('Updated subscription URL from remote: $_currentSubscriptionUrl');
         }
-        
-        // If the JSON also contains direct servers, we'll use them as fallback later
       }
     } catch (e) {
       debugPrint('Failed to fetch remote JSON for subscription update: $e');
@@ -147,6 +145,7 @@ class VpnProvider extends ChangeNotifier {
                 flag: '🌐',
                 protocol: 'V2Ray JSON',
                 configJson: config, // Store the full JSON config
+                configLink: '',
               ));
             }
           } catch (e) {
@@ -239,11 +238,17 @@ class VpnProvider extends ChangeNotifier {
 
   void _handleStatusChange(V2RayStatus status) {
     debugPrint('V2Ray status: ${status.state}');
+    
+    // Update stats from status
+    _uploadSpeed = status.uploadSpeed;
+    _downloadSpeed = status.downloadSpeed;
+    _totalUpload = status.upload;
+    _totalDownload = status.download;
+
     switch (status.state) {
       case 'CONNECTED':
         _status = VpnStatus.connected;
         _startDurationTimer();
-        _startStatsTimer();
         _fetchVpnIp();
         break;
       case 'CONNECTING':
@@ -288,7 +293,6 @@ class VpnProvider extends ChangeNotifier {
 
       String? config;
       if (_selectedServer!.configJson != null) {
-        // If configJson is a Map, convert it to JSON string
         if (_selectedServer!.configJson is Map) {
           config = json.encode(_selectedServer!.configJson);
         } else if (_selectedServer!.configJson is String && (_selectedServer!.configJson as String).isNotEmpty) {
@@ -296,19 +300,12 @@ class VpnProvider extends ChangeNotifier {
         }
       }
       
-      if (config == null && _selectedServer!.configLink.isNotEmpty) {
-        try {
-          // Use the built-in parser for vmess/vless links
-          config = await _flutterV2ray.parseV2rayLink(_selectedServer!.configLink);
-        } catch (e) {
-          debugPrint('Link parsing error: $e');
-          // Fallback to manual parsing if needed
-          final parser = FlutterV2ray.parseFromURL(_selectedServer!.configLink);
-          config = parser.getFullConfiguration();
-        }
+      if (config == null || config.isEmpty) {
+        final parser = FlutterV2ray.parseFromURL(_selectedServer!.configLink);
+        config = parser.getFullConfiguration();
       }
 
-      if (config == null) {
+      if (config == null || config.isEmpty) {
         throw Exception('Invalid configuration');
       }
 
@@ -331,7 +328,7 @@ class VpnProvider extends ChangeNotifier {
     try {
       _status = VpnStatus.disconnecting;
       notifyListeners();
-      _flutterV2ray.stopV2Ray();
+      await _flutterV2ray.stopV2Ray();
     } catch (e) {
       _status = VpnStatus.disconnected;
       _stopTimers();
@@ -368,16 +365,20 @@ class VpnProvider extends ChangeNotifier {
       try {
         if (_v2rayInitialized) {
           String? config;
-          if (_servers[i].configJson != null &&
-              _servers[i].configJson!.isNotEmpty) {
-            config = _servers[i].configJson;
-          } else {
-            final parser =
-                FlutterV2ray.parseFromURL(_servers[i].configLink);
+          if (_servers[i].configJson != null) {
+            if (_servers[i].configJson is Map) {
+              config = json.encode(_servers[i].configJson);
+            } else if (_servers[i].configJson is String && (_servers[i].configJson as String).isNotEmpty) {
+              config = _servers[i].configJson;
+            }
+          }
+          
+          if (config == null || config.isEmpty) {
+            final parser = FlutterV2ray.parseFromURL(_servers[i].configLink);
             config = parser.getFullConfiguration();
           }
 
-          if (config != null) {
+          if (config != null && config.isNotEmpty) {
             final delay = await _flutterV2ray.getServerDelay(
               config: config,
             );
@@ -454,16 +455,8 @@ class VpnProvider extends ChangeNotifier {
     });
   }
 
-  void _startStatsTimer() {
-    _statsTimer?.cancel();
-    _statsTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      notifyListeners();
-    });
-  }
-
   void _stopTimers() {
     _durationTimer?.cancel();
-    _statsTimer?.cancel();
     _connectionDuration = Duration.zero;
     _uploadSpeed = 0;
     _downloadSpeed = 0;
@@ -475,4 +468,3 @@ class VpnProvider extends ChangeNotifier {
     super.dispose();
   }
 }
-
