@@ -11,8 +11,10 @@ enum VpnStatus { disconnected, connecting, connected, disconnecting, error }
 class VpnProvider extends ChangeNotifier {
   static const String remoteServerUrl =
       'https://raw.githubusercontent.com/tunaung8993-hub/Tun-Aung-/main/tun_vpn_free/assets/servers/servers.json';
+  
   String _currentSubscriptionUrl =
       'https://my-proxy.tuntunaungmdw.workers.dev/sub/normal/WrOePpVG?app=xray';
+  
   VpnStatus _status = VpnStatus.disconnected;
   VpnServer? _selectedServer;
   List<VpnServer> _servers = [];
@@ -25,8 +27,8 @@ class VpnProvider extends ChangeNotifier {
   int _totalDownload = 0;
   Duration _connectionDuration = Duration.zero;
   Timer? _durationTimer;
-  Timer? _statsTimer;
   bool _isTestingPing = false;
+  bool _isRefreshing = false;
 
   late FlutterV2ray _flutterV2ray;
   bool _v2rayInitialized = false;
@@ -43,6 +45,7 @@ class VpnProvider extends ChangeNotifier {
   int get totalDownload => _totalDownload;
   Duration get connectionDuration => _connectionDuration;
   bool get isTestingPing => _isTestingPing;
+  bool get isRefreshing => _isRefreshing;
   bool get isConnected => _status == VpnStatus.connected;
   bool get isConnecting => _status == VpnStatus.connecting;
 
@@ -61,7 +64,7 @@ class VpnProvider extends ChangeNotifier {
   }
 
   String _maskIp(String ip) {
-    if (ip.isEmpty) return '---';
+    if (ip.isEmpty) return '---.---.---.---';
     final parts = ip.split('.');
     if (parts.length == 4) {
       return '${parts[0]}.${parts[1]}.***.***';
@@ -98,31 +101,31 @@ class VpnProvider extends ChangeNotifier {
     if (_servers.isNotEmpty) {
       _selectedServer = _servers.first;
     }
-    // Initialize V2Ray without blocking the constructor
-    _initV2Ray().catchError((e) => debugPrint('V2Ray init error: $e'));
-    _fetchRealIp().catchError((e) => debugPrint('IP fetch error: $e'));
-    refreshServers().catchError((e) => debugPrint('Server refresh error: $e'));
+    _initV2Ray().then((_) {
+      _fetchRealIp();
+      refreshServers();
+    });
   }
 
   Future<void> refreshServers() async {
-    // 1. First, fetch Remote JSON to see if there's a new Subscription URL
+    if (_isRefreshing) return;
+    _isRefreshing = true;
+    notifyListeners();
+
     try {
+      // 1. Fetch Remote JSON for metadata and fallback servers
       final jsonResponse = await http
           .get(Uri.parse(remoteServerUrl))
           .timeout(const Duration(seconds: 10));
+      
       if (jsonResponse.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(jsonResponse.body);
         if (data.containsKey('subscription_url') && data['subscription_url'].toString().isNotEmpty) {
           _currentSubscriptionUrl = data['subscription_url'];
-          debugPrint('Updated subscription URL from remote: $_currentSubscriptionUrl');
         }
       }
-    } catch (e) {
-      debugPrint('Failed to fetch remote JSON for subscription update: $e');
-    }
 
-    // 2. Try to fetch from the (potentially updated) Subscription Link
-    try {
+      // 2. Fetch from Subscription Link
       final response = await http
           .get(Uri.parse(_currentSubscriptionUrl))
           .timeout(const Duration(seconds: 15));
@@ -131,95 +134,95 @@ class VpnProvider extends ChangeNotifier {
         final String content = response.body.trim();
         List<VpnServer> newServers = [];
 
-        // 1. Check if it's a JSON List (Xray/V2Ray JSON config list)
-        if (content.startsWith('[') && content.endsWith(']')) {
+        // Try parsing as JSON List first
+        if (content.startsWith('[') || content.startsWith('{')) {
           try {
-            final List<dynamic> jsonList = json.decode(content);
-            for (int i = 0; i < jsonList.length; i++) {
-              final config = jsonList[i];
-              String name = config['remarks'] ?? 'Server ${i + 1}';
-              newServers.add(VpnServer(
-                id: 'sub-json-$i',
-                country: 'Auto',
-                city: name,
-                flag: '🌐',
-                protocol: 'V2Ray JSON',
-                configJson: config, // Store the full JSON config
-                configLink: '',
-              ));
+            final dynamic decoded = json.decode(content);
+            if (decoded is List) {
+              for (int i = 0; i < decoded.length; i++) {
+                final config = decoded[i];
+                newServers.add(_parseJsonConfig(config, 'sub-json-$i'));
+              }
+            } else if (decoded is Map) {
+              newServers.add(_parseJsonConfig(decoded, 'sub-json-0'));
             }
           } catch (e) {
-            debugPrint('Failed to parse JSON subscription: $e');
+            debugPrint('JSON parsing failed, trying links...');
           }
-        } 
-        // 2. Check if it's Base64 encoded links
-        else {
+        }
+
+        // If no servers found, try parsing as links (Base64 or Plain)
+        if (newServers.isEmpty) {
+          String decodedContent = content;
           try {
-            String decoded = utf8.decode(base64.decode(content));
-            List<String> links = decoded.split('\n').where((l) => l.trim().isNotEmpty).toList();
-            for (int i = 0; i < links.length; i++) {
-              String link = links[i].trim();
-              String name = link.contains('#') ? Uri.decodeComponent(link.split('#').last) : 'Server ${i + 1}';
+            decodedContent = utf8.decode(base64.decode(content));
+          } catch (_) {
+            // Not base64, use as is
+          }
+
+          final List<String> links = decodedContent
+              .split('\n')
+              .map((l) => l.trim())
+              .where((l) => l.isNotEmpty)
+              .toList();
+
+          for (int i = 0; i < links.length; i++) {
+            final link = links[i];
+            if (link.startsWith('vmess://') || link.startsWith('vless://') || 
+                link.startsWith('ss://') || link.startsWith('trojan://')) {
+              
+              String name = 'Server ${i + 1}';
+              if (link.contains('#')) {
+                name = Uri.decodeComponent(link.split('#').last);
+              }
+
               newServers.add(VpnServer(
                 id: 'sub-link-$i',
                 country: 'Auto',
                 city: name,
                 flag: '🌐',
-                protocol: link.startsWith('vmess') ? 'VMess' : 'VLESS',
+                protocol: _getProtocolFromLink(link),
                 configLink: link,
               ));
-            }
-          } catch (e) {
-            debugPrint('Failed to decode Base64 subscription: $e');
-            // 3. Try as plain text links
-            List<String> links = content.split('\n').where((l) => l.trim().isNotEmpty).toList();
-            if (links.any((l) => l.startsWith('vmess') || l.startsWith('vless'))) {
-              for (int i = 0; i < links.length; i++) {
-                String link = links[i].trim();
-                if (link.startsWith('vmess') || link.startsWith('vless')) {
-                  String name = link.contains('#') ? Uri.decodeComponent(link.split('#').last) : 'Server ${i + 1}';
-                  newServers.add(VpnServer(
-                    id: 'sub-plain-$i',
-                    country: 'Auto',
-                    city: name,
-                    flag: '🌐',
-                    protocol: link.startsWith('vmess') ? 'VMess' : 'VLESS',
-                    configLink: link,
-                  ));
-                }
-              }
             }
           }
         }
 
         if (newServers.isNotEmpty) {
           _servers = newServers;
-          _selectedServer = _servers.first;
-          notifyListeners();
-          return;
+          // Keep selected server if it still exists, otherwise pick first
+          if (_selectedServer == null || !_servers.any((s) => s.id == _selectedServer!.id)) {
+            _selectedServer = _servers.first;
+          }
         }
       }
     } catch (e) {
-      debugPrint('Subscription fetch error: $e');
+      debugPrint('Refresh error: $e');
+    } finally {
+      _isRefreshing = false;
+      notifyListeners();
     }
+  }
 
-    // 2. Fallback to Remote JSON if subscription fails
-    try {
-      final response = await http
-          .get(Uri.parse(remoteServerUrl))
-          .timeout(const Duration(seconds: 10));
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        if (data.containsKey('servers')) {
-          final List<dynamic> serverList = data['servers'];
-          _servers = serverList.map((s) => VpnServer.fromJson(s)).toList();
-          if (_servers.isNotEmpty) _selectedServer = _servers.first;
-          notifyListeners();
-        }
-      }
-    } catch (e) {
-      debugPrint('Failed to fetch remote servers: $e');
-    }
+  VpnServer _parseJsonConfig(Map<String, dynamic> config, String id) {
+    String name = config['remarks'] ?? config['ps'] ?? 'Unknown Server';
+    return VpnServer(
+      id: id,
+      country: 'Auto',
+      city: name,
+      flag: '🌐',
+      protocol: 'V2Ray',
+      configJson: config,
+      configLink: '',
+    );
+  }
+
+  String _getProtocolFromLink(String link) {
+    if (link.startsWith('vmess')) return 'VMess';
+    if (link.startsWith('vless')) return 'VLESS';
+    if (link.startsWith('ss')) return 'Shadowsocks';
+    if (link.startsWith('trojan')) return 'Trojan';
+    return 'V2Ray';
   }
 
   Future<void> _initV2Ray() async {
@@ -237,9 +240,6 @@ class VpnProvider extends ChangeNotifier {
   }
 
   void _handleStatusChange(V2RayStatus status) {
-    debugPrint('V2Ray status: ${status.state}');
-    
-    // Update stats from status
     _uploadSpeed = status.uploadSpeed;
     _downloadSpeed = status.downloadSpeed;
     _totalUpload = status.upload;
@@ -271,12 +271,7 @@ class VpnProvider extends ChangeNotifier {
   }
 
   Future<void> connect() async {
-    if (_selectedServer == null) return;
-    if (!_v2rayInitialized) {
-      _errorMessage = 'VPN engine not ready. Please restart the app.';
-      notifyListeners();
-      return;
-    }
+    if (_selectedServer == null || !_v2rayInitialized) return;
 
     try {
       _status = VpnStatus.connecting;
@@ -286,40 +281,31 @@ class VpnProvider extends ChangeNotifier {
       final hasPermission = await _flutterV2ray.requestPermission();
       if (!hasPermission) {
         _status = VpnStatus.disconnected;
-        _errorMessage = 'VPN permission denied. Please grant permission.';
+        _errorMessage = 'Permission denied';
         notifyListeners();
         return;
       }
 
       String? config;
       if (_selectedServer!.configJson != null) {
-        if (_selectedServer!.configJson is Map) {
-          config = json.encode(_selectedServer!.configJson);
-        } else if (_selectedServer!.configJson is String && (_selectedServer!.configJson as String).isNotEmpty) {
-          config = _selectedServer!.configJson;
-        }
-      }
-      
-      if (config == null || config.isEmpty) {
+        config = json.encode(_selectedServer!.configJson);
+      } else {
         final parser = FlutterV2ray.parseFromURL(_selectedServer!.configLink);
         config = parser.getFullConfiguration();
       }
 
       if (config == null || config.isEmpty) {
-        throw Exception('Invalid configuration');
+        throw Exception('Invalid config');
       }
 
       await _flutterV2ray.startV2Ray(
         remark: _selectedServer!.displayName,
         config: config,
-        blockedApps: null,
-        bypassSubnets: null,
         proxyOnly: false,
       );
     } catch (e) {
       _status = VpnStatus.error;
-      _errorMessage = 'Connection failed: ${e.toString()}';
-      debugPrint('Connect error: $e');
+      _errorMessage = e.toString();
       notifyListeners();
     }
   }
@@ -329,15 +315,14 @@ class VpnProvider extends ChangeNotifier {
       _status = VpnStatus.disconnecting;
       notifyListeners();
       await _flutterV2ray.stopV2Ray();
-    } catch (e) {
+    } catch (_) {
       _status = VpnStatus.disconnected;
-      _stopTimers();
       notifyListeners();
     }
   }
 
   Future<void> toggleConnection() async {
-    if (_status == VpnStatus.connected || _status == VpnStatus.connecting) {
+    if (isConnected || isConnecting) {
       await disconnect();
     } else {
       await connect();
@@ -345,7 +330,7 @@ class VpnProvider extends ChangeNotifier {
   }
 
   void selectServer(VpnServer server) {
-    if (_status == VpnStatus.connected) {
+    if (isConnected) {
       disconnect().then((_) {
         _selectedServer = server;
         notifyListeners();
@@ -357,47 +342,33 @@ class VpnProvider extends ChangeNotifier {
   }
 
   Future<void> testAllPings() async {
-    if (_isTestingPing) return;
+    if (_isTestingPing || !_v2rayInitialized) return;
     _isTestingPing = true;
     notifyListeners();
 
     for (int i = 0; i < _servers.length; i++) {
       try {
-        if (_v2rayInitialized) {
-          String? config;
-          if (_servers[i].configJson != null) {
-            if (_servers[i].configJson is Map) {
-              config = json.encode(_servers[i].configJson);
-            } else if (_servers[i].configJson is String && (_servers[i].configJson as String).isNotEmpty) {
-              config = _servers[i].configJson;
-            }
-          }
-          
-          if (config == null || config.isEmpty) {
-            final parser = FlutterV2ray.parseFromURL(_servers[i].configLink);
-            config = parser.getFullConfiguration();
-          }
-
-          if (config != null && config.isNotEmpty) {
-            final delay = await _flutterV2ray.getServerDelay(
-              config: config,
-            );
-            _servers[i] = _servers[i].copyWith(ping: delay);
-          }
+        String? config;
+        if (_servers[i].configJson != null) {
+          config = json.encode(_servers[i].configJson);
         } else {
-          _servers[i] = _servers[i].copyWith(ping: 50 + (i * 30));
+          final parser = FlutterV2ray.parseFromURL(_servers[i].configLink);
+          config = parser.getFullConfiguration();
         }
-      } catch (e) {
+
+        if (config != null && config.isNotEmpty) {
+          final delay = await _flutterV2ray.getServerDelay(config: config);
+          _servers[i] = _servers[i].copyWith(ping: delay);
+        }
+      } catch (_) {
         _servers[i] = _servers[i].copyWith(ping: 9999);
       }
       notifyListeners();
     }
 
     _servers.sort((a, b) {
-      if (a.ping == 9999) return 1;
-      if (b.ping == 9999) return -1;
-      if (a.ping == -1) return 1;
-      if (b.ping == -1) return -1;
+      if (a.ping == -1 || a.ping == 9999) return 1;
+      if (b.ping == -1 || b.ping == 9999) return -1;
       return a.ping.compareTo(b.ping);
     });
 
@@ -405,45 +376,25 @@ class VpnProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void autoSelectBestServer() {
-    final available =
-        _servers.where((s) => s.ping > 0 && s.ping < 9999).toList();
-    if (available.isNotEmpty) {
-      available.sort((a, b) => a.ping.compareTo(b.ping));
-      _selectedServer = available.first;
-      notifyListeners();
-    }
-  }
-
   Future<void> _fetchRealIp() async {
     try {
-      final response = await http
-          .get(Uri.parse('https://api.ipify.org?format=json'))
-          .timeout(const Duration(seconds: 5));
+      final response = await http.get(Uri.parse('https://api.ipify.org?format=json'));
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        _realIp = data['ip'] ?? '';
+        _realIp = json.decode(response.body)['ip'] ?? '';
         notifyListeners();
       }
-    } catch (e) {
-      _realIp = '';
-    }
+    } catch (_) {}
   }
 
   Future<void> _fetchVpnIp() async {
     await Future.delayed(const Duration(seconds: 2));
     try {
-      final response = await http
-          .get(Uri.parse('https://api.ipify.org?format=json'))
-          .timeout(const Duration(seconds: 5));
+      final response = await http.get(Uri.parse('https://api.ipify.org?format=json'));
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        _vpnIp = data['ip'] ?? '';
+        _vpnIp = json.decode(response.body)['ip'] ?? '';
         notifyListeners();
       }
-    } catch (e) {
-      _vpnIp = '';
-    }
+    } catch (_) {}
   }
 
   void _startDurationTimer() {
@@ -458,8 +409,6 @@ class VpnProvider extends ChangeNotifier {
   void _stopTimers() {
     _durationTimer?.cancel();
     _connectionDuration = Duration.zero;
-    _uploadSpeed = 0;
-    _downloadSpeed = 0;
   }
 
   @override

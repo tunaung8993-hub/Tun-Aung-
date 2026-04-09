@@ -59,6 +59,24 @@ class _ServerListScreenState extends State<ServerListScreen> {
                       ],
                     ),
                   ),
+                  // Refresh button
+                  IconButton(
+                    onPressed: vpn.isRefreshing ? null : vpn.refreshServers,
+                    icon: vpn.isRefreshing
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primary,
+                              ),
+                            ),
+                          )
+                        : const Icon(Icons.refresh, color: AppColors.primary),
+                    tooltip: 'Refresh Servers',
+                  ),
+                  const SizedBox(width: 8),
                   // Ping test button
                   ElevatedButton.icon(
                     onPressed: vpn.isTestingPing ? null : vpn.testAllPings,

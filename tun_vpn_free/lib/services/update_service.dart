@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class UpdateService {
   static const String _githubUser = 'tunaung8993-hub';
@@ -102,34 +103,33 @@ class UpdateService {
   }
 
   static void _downloadAndInstall(BuildContext context, String apkUrl) async {
+    final Uri url = Uri.parse(apkUrl);
+    
     // Show downloading snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Row(
           children: [
-            SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            ),
+            Icon(Icons.download, color: Colors.white),
             SizedBox(width: 12),
-            Text('Downloading update...'),
+            Text('Opening browser to download update...'),
           ],
         ),
-        duration: Duration(seconds: 30),
+        duration: Duration(seconds: 5),
       ),
     );
 
     try {
-      // Open APK download URL in browser
-      // flutter_v2ray package handles this or use url_launcher
-      // For now we direct to download URL
-      debugPrint('Download APK from: $apkUrl');
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        throw Exception('Could not launch $url');
+      }
     } catch (e) {
       debugPrint('Download failed: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to open download link: $e')),
+        );
+      }
     }
   }
 }
