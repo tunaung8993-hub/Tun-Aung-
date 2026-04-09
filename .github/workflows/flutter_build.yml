@@ -1,50 +1,31 @@
-name: Build Tun VPN APK
+name: Flutter Build APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build Android APK
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: tun_vpn_free
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: 'zulu'
           java-version: '17'
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.4'
+          flutter-version: '3.24.0'
           channel: 'stable'
-
-      - name: Get dependencies
-        run: flutter pub get
-
-      - name: Build APK (Split per ABI)
-        run: flutter build apk --release --split-per-abi
-
-      - name: Build Universal APK
-        run: flutter build apk --release
-
-      - name: Upload APKs
+      - name: Build APK
+        run: |
+          cd tun_vpn_free
+          flutter pub get
+          flutter build apk --release
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TunVPN-Release-APKs
-          path: |
-            tun_vpn_free/build/app/outputs/flutter-apk/*.apk
-            tun_vpn_free/build/app/outputs/apk/release/*.apk
-          retention-days: 30
+          name: release-apk
+          path: tun_vpn_free/build/app/outputs/flutter-apk/app-release.apk
+          
